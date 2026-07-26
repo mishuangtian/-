@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>岭南方言俗语词云 - 透明背景版</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts-wordcloud@2.1.0/dist/echarts-wordcloud.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            background: transparent !important;
+            font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+            overflow: hidden;
+        }
+        #wordCloud {
+            width: 100%;
+            height: 100vh;
+            background: transparent;
+        }
+        .popup {
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 249, 240, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 2px solid rgba(200, 64, 36, 0.8);
+            box-shadow: 0 8px 32px rgba(200, 64, 36, 0.4);
+            padding: 28px 32px;
+            max-width: 480px; width: 90%;
+            z-index: 999;
+            border-radius: 12px;
+            display: none;
+        }
+        .popup h3 {
+            margin-bottom: 16px;
+            color: #c84024;
+            font-size: 22px;
+            border-bottom: 1px solid rgba(240, 208, 192, 0.8);
+            padding-bottom: 10px;
+        }
+        .popup p { line-height: 1.8; color: #333; font-size: 15px; }
+        .popup .example {
+            margin-top: 12px; padding-top: 12px;
+            border-top: 1px dashed rgba(224, 192, 176, 0.8);
+            color: #555; font-size: 14px; font-style: italic;
+        }
+        .close-btn {
+            margin-top: 20px; padding: 8px 24px;
+            cursor: pointer; border: none;
+            background: linear-gradient(135deg, #c84024, #e06040);
+            color: white; border-radius: 6px; font-size: 14px;
+            transition: all 0.3s;
+            box-shadow: 0 2px 8px rgba(200, 64, 36, 0.3);
+        }
+        .close-btn:hover {
+            background: linear-gradient(135deg, #a03018, #c84024);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(200, 64, 36, 0.4);
+        }
+        .mask {
+            position: fixed; inset: 0;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
+            display: none; z-index: 998;
+        }
+    </style>
+</head>
+<body>
+    <div id="wordCloud"></div>
+    <div class="mask" id="mask"></div>
+    <div class="popup" id="popup">
+        <h3 id="pop-title"></h3>
+        <p id="pop-desc"></p>
+        <p class="example" id="pop-example"></p>
+        <button class="close-btn" onclick="closePopup()">关闭</button>
+    </div>
+    <script>
+        const wordData = [
+            { name: "鸡公榄", value: 80, desc: "岭南旧时沿街叫卖橄榄的行当，小贩吹唢呐招揽路人，俗称\"飞机榄\"。", example: "以前成日听到楼下有鸡公榄嘅唢呐声。" },
+            { name: "鸡碎咁多", value: 65, desc: "粤语俗语，形容数量很少、一点点。", example: "得鸡碎咁多钱，边够买衫啊？" },
+            { name: "静鸡鸡", value: 75, desc: "悄悄地、不声不响地做事；形容环境很安静。", example: "佢静鸡鸡咁走咗入嚟，吓我一跳。" },
+            { name: "执鸡", value: 55, desc: "捡漏，得到别人剩下的机会或好处。", example: "最后一张票畀我执鸡执到咗。" },
+            { name: "偷鸡", value: 70, desc: "偷懒、投机取巧；工作或学习时摸鱼。", example: "上班唔好成日偷鸡，畀老细见到就弊。" },
+            { name: "鸡手鸭脚", value: 50, desc: "形容人笨手笨脚，做事不灵活。", example: "你做嘢鸡手鸭脚嘅，等我嚟啦。" },
+            { name: "无鸡不成宴", value: 85, desc: "岭南传统宴席习俗，宴席必备鸡肉菜肴，体现鸡在粤菜文化中的重要地位。", example: "广东人摆酒真系无鸡不成宴。" },
+            { name: "走鸡", value: 72, desc: "错失机会、错过好时机；也指躲过关口、溜走。", example: "呢匀再走鸡，第日就冇得㗎喇。" },
+            { name: "捞鸡", value: 58, desc: "完成了某件事，得到了好处；捞到好处、占到便宜。", example: "今次项目佢捞鸡唔少。" },
+            { name: "谢鸡", value: 48, desc: "连鸡也谢幕了，比喻玩完了、完蛋了，指不好的结局。", example: "今次考试肯定谢鸡啦。" },
+            { name: "漏鸡", value: 45, desc: "遗漏、漏掉；也指失去机会。", example: "我话点解少咗，原来有一个漏鸡冇数到。" },
+            { name: "电鸡", value: 68, desc: "粤语俚语，指电动自行车、电瓶车。因早年电动车体型小、灵活，类似\"鸡\"的叫法传承。", example: "广州街头好多电鸡周围穿。" },
+            { name: "一蚊鸡", value: 62, desc: "一元钱。\"蚊\"是粤语\"元\"的意思，\"鸡\"是钱币单位的俚语说法。", example: "以前一蚊鸡可以买好多嘢。" },
+            { name: "执死鸡", value: 65, desc: "捡便宜、碰巧抓住最后机会、捡漏；比喻得到意外的好处。", example: "演唱会门票畀我执死鸡执到两张。" },
+            { name: "中瘟鸡", value: 52, desc: "打瞌睡而晕头转向；比喻乱闯乱撞、精神恍惚的人。也作\"舂瘟鸡\"。", example: "睇你成只中瘟鸡咁，琴晚冇瞓好啊？" },
+            { name: "三脚鸡", value: 56, desc: "三轮机动车、三轮车，多在小城镇载客用。类似泰国的嘟嘟车。", example: "以前返学都系坐三脚鸡去。" },
+            { name: "落汤鸡", value: 60, desc: "被雨淋湿全身，像掉进汤里的鸡一样；形容浑身湿透的样子。", example: "落大雨冇带遮，返到屋企成只落汤鸡。" },
+            { name: "铁嘴鸡", value: 54, desc: "形容能言善辩、嘴上不饶人的人（通常指女性），尖酸刻薄、好辩驳、吵架不认输。", example: "佢正一铁嘴鸡，嘈交冇人够佢嚟。" },
+            { name: "咪走鸡", value: 66, desc: "不要错失良机、别错过机会。\"咪\"是粤语\"不要\"的意思。", example: "今次优惠好难得，咪走鸡啊！" },
+            { name: "小学鸡", value: 64, desc: "原指小学生；现也指思想或行为幼稚的人（略带轻视口吻）。", example: "几十岁人仲好似小学鸡咁，几时先生性啊？" },
+            { name: "鸡咳", value: 42, desc: "比喻不当一回事的话语；形容说话像鸡叫一样微不足道。", example: "佢讲嘅嘢当鸡咳咁就得啦。" },
+            { name: "老鸡", value: 46, desc: "形容人老成、老练、经验丰富。", example: "呢方面佢系老鸡嚟嘅，问佢就啱。" }
+        ];
+
+        const chartDom = document.getElementById('wordCloud');
+        const myChart = echarts.init(chartDom, null, { renderer: 'canvas' });
+
+        const option = {
+            backgroundColor: 'transparent',
+            tooltip: {
+                show: true,
+                backgroundColor: 'rgba(255, 249, 240, 0.95)',
+                borderColor: '#c84024',
+                borderWidth: 1,
+                textStyle: { color: '#333', fontSize: 13 },
+                formatter: function(params) {
+                    return '<div style="font-weight:bold;color:#c84024;margin-bottom:4px;">' + params.name + '</div>' + params.data.desc.substring(0, 40) + '...';
+                }
+            },
+            series: [{
+                type: 'wordCloud',
+                shape: 'circle',
+                gridSize: 12,
+                sizeRange: [18, 68],
+                rotationRange: [-45, 45],
+                rotationStep: 15,
+                drawOutOfBound: false,
+                textStyle: {
+                    fontFamily: "Microsoft YaHei, PingFang SC, sans-serif",
+                    fontWeight: 'bold',
+                    textShadowColor: 'rgba(255, 255, 255, 0.9)',
+                    textShadowBlur: 4,
+                    textShadowOffsetX: 1,
+                    textShadowOffsetY: 1,
+                    color: function () {
+                        const colorList = ['#c0392b', '#d35400', '#b8860b', '#8b4513', '#a0522d', '#cd853f', '#dc143c', '#ff6347', '#daa520', '#b22222', '#ff8c00', '#d2691e'];
+                        return colorList[Math.floor(Math.random() * colorList.length)];
+                    }
+                },
+                emphasis: {
+                    textStyle: {
+                        textShadowBlur: 15,
+                        textShadowColor: '#ffd700',
+                        fontWeight: 'bolder'
+                    }
+                },
+                data: wordData
+            }]
+        };
+
+        myChart.setOption(option);
+
+        myChart.on('click', function (params) {
+            const wordInfo = params.data;
+            document.getElementById('pop-title').innerText = wordInfo.name;
+            document.getElementById('pop-desc').innerText = wordInfo.desc;
+            if (wordInfo.example) {
+                document.getElementById('pop-example').innerText = '例句：' + wordInfo.example;
+                document.getElementById('pop-example').style.display = 'block';
+            } else {
+                document.getElementById('pop-example').style.display = 'none';
+            }
+            document.getElementById('mask').style.display = 'block';
+            document.getElementById('popup').style.display = 'block';
+        });
+
+        function closePopup() {
+            document.getElementById('mask').style.display = 'none';
+            document.getElementById('popup').style.display = 'none';
+        }
+        document.getElementById('mask').addEventListener('click', closePopup);
+        window.addEventListener('resize', function() { myChart.resize(); });
+    </script>
+</body>
+</html>
